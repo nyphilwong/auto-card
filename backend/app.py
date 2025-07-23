@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from datetime import timedelta
 
 app = Flask(__name__)
 CORS(app)
@@ -11,6 +12,7 @@ CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///auto_card.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = 'super-secret-key'  # Change this in production!
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)  # or longer for dev
 
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
@@ -57,6 +59,10 @@ def register():
     db.session.commit()
     return jsonify({"message": "User registered successfully!"}), 201
 
+# curl -X POST http://127.0.0.1:5000/register \                          
+#   -H "Content-Type: application/json" \
+#   -d '{"email":"test@example.com","password":"test123"}'
+
 @app.route("/login", methods=["POST"])
 def login():
     data = request.get_json()
@@ -68,6 +74,10 @@ def login():
         return jsonify({"access_token": access_token}), 200
     return jsonify({"error": "Invalid email or password"}), 401
 
+# curl -X POST http://127.0.0.1:5000/login \ 
+#   -H "Content-Type: application/json" \
+#   -d '{"email":"test@example.com","password":"test123"}'
+
 @app.route("/protected", methods=["GET"])
 @jwt_required()
 def protected():
@@ -77,6 +87,9 @@ def protected():
         return jsonify({"message": f"Hello {user.email}, you are authenticated!"})
     else:
         return jsonify({"error": "User not found."}), 404
+
+# curl -X GET http://127.0.0.1:5000/protected \
+# > -H "Authorization: Bearer <access_token>"
 
 @app.route("/delete_user", methods=["POST"])
 def delete_user():
@@ -88,6 +101,10 @@ def delete_user():
         db.session.commit()
         return jsonify({"message": f"User {email} deleted."}), 200
     return jsonify({"error": "User not found."}), 404
+
+# curl -X POST http://127.0.0.1:5000/delete_user \
+#   -H "Content-Type: application/json" \
+#   -d '{"email":"test@example.com"}'
 
 @app.route("/cards", methods=["POST"])
 @jwt_required()
@@ -103,6 +120,11 @@ def add_card():
     db.session.commit()
     return jsonify({"message": "Card added!", "card_id": card.id}), 201
 
+# curl -X POST http://127.0.0.1:5000/cards \
+#   -H "Content-Type: application/json" \
+#   -H "Authorization: Bearer <access_token>" \
+#   -d '{"name":"Test Card","last_four":"1234"}'
+
 @app.route("/cards", methods=["GET"])
 @jwt_required()
 def get_cards():
@@ -110,6 +132,9 @@ def get_cards():
     cards = Card.query.filter_by(user_id=user_id).all()
     card_list = [{"id": c.id, "name": c.name, "last_four": c.last_four} for c in cards]
     return jsonify(card_list), 200
+
+# curl -X GET http://127.0.0.1:5000/cards \
+#   -H "Authorization: Bearer <access_token>"
 
 @app.route("/cards/<int:card_id>", methods=["DELETE"])
 @jwt_required()
@@ -122,6 +147,84 @@ def delete_card(card_id):
     db.session.commit()
     return jsonify({"message": "Card deleted"}), 200
 
+@app.route("/reward_rules", methods=["POST"])
+@jwt_required()
+def add_reward_rule():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    card_id = data.get("card_id")
+    category = data.get("category")
+    reward_type = data.get("reward_type")  # 'points' or 'cashback'
+    reward_value = data.get("reward_value")
+    # Check card ownership
+    card = Card.query.filter_by(id=card_id, user_id=user_id).first()
+    if not card:
+        return jsonify({"error": "Card not found or not owned by user"}), 404
+    if not category or not reward_type or reward_value is None:
+        return jsonify({"error": "Missing required fields"}), 400
+    rule = RewardRule(card_id=card_id, category=category, reward_type=reward_type, reward_value=reward_value)
+    db.session.add(rule)
+    db.session.commit()
+    return jsonify({"message": "Reward rule added!", "rule_id": rule.id}), 201
+
+@app.route("/reward_rules/<int:card_id>", methods=["GET"])
+@jwt_required()
+def get_reward_rules(card_id):
+    user_id = get_jwt_identity()
+    card = Card.query.filter_by(id=card_id, user_id=user_id).first()
+    if not card:
+        return jsonify({"error": "Card not found or not owned by user"}), 404
+    rules = RewardRule.query.filter_by(card_id=card_id).all()
+    rule_list = [{
+        "id": r.id,
+        "category": r.category,
+        "reward_type": r.reward_type,
+        "reward_value": r.reward_value
+    } for r in rules]
+    return jsonify(rule_list), 200
+
+@app.route("/recommend_card", methods=["POST"])
+@jwt_required()
+def recommend_card():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    category = data.get("category")
+    amount = data.get("amount")
+    if not category or amount is None:
+        return jsonify({"error": "Category and amount required"}), 400
+    cards = Card.query.filter_by(user_id=user_id).all()
+    best_card = None
+    best_reward = 0
+    best_type = None
+    for card in cards:
+        # Find the best matching rule for this card
+        rule = RewardRule.query.filter_by(card_id=card.id, category=category).first()
+        if rule:
+            reward = rule.reward_value
+            reward_type = rule.reward_type
+        else:
+            # Default: 1x points or 1% cashback if no rule
+            reward = 1.0
+            reward_type = 'points'
+        # For now, treat points and cashback equally (can be improved)
+        if reward > best_reward:
+            best_reward = reward
+            best_card = card
+            best_type = reward_type
+    if not best_card:
+        return jsonify({"error": "No cards found"}), 404
+    return jsonify({
+        "card_id": best_card.id,
+        "name": best_card.name,
+        "last_four": best_card.last_four,
+        "reward_type": best_type,
+        "reward_value": best_reward
+    }), 200
+    
+# curl -X POST http://127.0.0.1:5000/recommend_card \
+#   -H "Content-Type: application/json" \
+#   -H "Authorization: Bearer <access_token>" \
+#   -d '{"category": "dining", "amount": 100}'
 
 if __name__ == "__main__":
     with app.app_context():
