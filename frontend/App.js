@@ -1,29 +1,39 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import LoginScreen from './screens/LoginScreen';
+import RegisterScreen from './screens/RegisterScreen';
+import HomeScreen from './screens/HomeScreen';
+
+const Stack = createNativeStackNavigator();
 
 export default function App() {
-  const [message, setMessage] = useState('Loading...');
+  const [token, setToken] = useState(null);
 
   useEffect(() => {
-    // Change the URL to your computer's local IP if running on a real device
-    fetch('http://127.0.0.1:5000/')
-      .then((response) => response.json())
-      .then((data) => setMessage(data.message))
-      .catch((error) => setMessage('Error connecting to backend'));
+    // Check for token on app start
+    AsyncStorage.getItem('token').then(setToken);
   }, []);
 
   return (
-    <View style={styles.container}>
-      <Text>{message}</Text>
-    </View>
+    <NavigationContainer>
+      <Stack.Navigator>
+        {token ? (
+          <>
+            <Stack.Screen name="Home">
+              {(props) => <HomeScreen {...props} token={token} setToken={setToken} />}
+            </Stack.Screen>
+          </>
+        ) : (
+          <>
+            <Stack.Screen name="Login">
+              {(props) => <LoginScreen {...props} setToken={setToken} />}
+            </Stack.Screen>
+            <Stack.Screen name="Register" component={RegisterScreen} />
+          </>
+        )}
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
