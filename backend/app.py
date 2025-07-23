@@ -28,6 +28,7 @@ class Card(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     name = db.Column(db.String(120), nullable=False)
     last_four = db.Column(db.String(4), nullable=True)
+    reward_rules = db.relationship('RewardRule', backref='card', lazy=True)
 
 # Example RewardRule model
 class RewardRule(db.Model):
@@ -87,6 +88,39 @@ def delete_user():
         db.session.commit()
         return jsonify({"message": f"User {email} deleted."}), 200
     return jsonify({"error": "User not found."}), 404
+
+@app.route("/cards", methods=["POST"])
+@jwt_required()
+def add_card():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    name = data.get("name")
+    last_four = data.get("last_four")
+    if not name:
+        return jsonify({"error": "Card name required"}), 400
+    card = Card(user_id=user_id, name=name, last_four=last_four)
+    db.session.add(card)
+    db.session.commit()
+    return jsonify({"message": "Card added!", "card_id": card.id}), 201
+
+@app.route("/cards", methods=["GET"])
+@jwt_required()
+def get_cards():
+    user_id = get_jwt_identity()
+    cards = Card.query.filter_by(user_id=user_id).all()
+    card_list = [{"id": c.id, "name": c.name, "last_four": c.last_four} for c in cards]
+    return jsonify(card_list), 200
+
+@app.route("/cards/<int:card_id>", methods=["DELETE"])
+@jwt_required()
+def delete_card(card_id):
+    user_id = get_jwt_identity()
+    card = Card.query.filter_by(id=card_id, user_id=user_id).first()
+    if not card:
+        return jsonify({"error": "Card not found"}), 404
+    db.session.delete(card)
+    db.session.commit()
+    return jsonify({"message": "Card deleted"}), 200
 
 
 if __name__ == "__main__":
