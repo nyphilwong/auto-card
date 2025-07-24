@@ -72,6 +72,27 @@ const CardManagementScreen = ({ token }) => {
     }
   };
 
+  const handleDeleteCard = async (cardId) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:5000/cards/${cardId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+      if (response.ok) {
+        setCards(cards.filter(card => card.id !== cardId));
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to delete card');
+      }
+    } catch (e) {
+      alert('Network request failed');
+    }
+  };
+
   // Render a loading message while the data is being fetched.
   if (loading) {
     return <View style={styles.container}><Text>Loading...</Text></View>;
@@ -92,6 +113,7 @@ const CardManagementScreen = ({ token }) => {
           <View style={styles.card}>
             <Text style={styles.cardText}>{item.name}</Text>
             <Text style={styles.cardText}>**** **** **** {item.last_four}</Text>
+            <Button title="Delete" onPress={() => handleDeleteCard(item.id)} />
           </View>
         )}
       />

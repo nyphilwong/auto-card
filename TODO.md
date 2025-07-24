@@ -4,10 +4,10 @@ This file tracks the development progress of the Auto-Card project.
 
 ## High Priority
 
-*   [ ] **Card Management UI:**
-    *   [ ] Create a new screen to display a list of the user's credit cards.
-    *   [ ] Implement a form to add a new credit card.
-    *   [ ] Add the ability to delete a credit card.
+*   [x] **Card Management UI:**
+    *   [x] Create a new screen to display a list of the user's credit cards.
+    *   [x] Implement a form to add a new credit card.
+    *   [x] Add the ability to delete a credit card.
 *   [ ] **Reward Rule UI:**
     *   [ ] Design a user interface for adding, viewing, and deleting reward rules for each card.
     *   [ ] Connect the UI to the backend API endpoints for reward rules.
