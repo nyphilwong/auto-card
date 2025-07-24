@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, Button, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function HomeScreen({ setToken }) {
+export default function HomeScreen({ navigation, setToken }) {
   const handleLogout = async () => {
     await AsyncStorage.removeItem('token');
     setToken(null);
@@ -11,6 +11,7 @@ export default function HomeScreen({ setToken }) {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Welcome to Auto Card!</Text>
+      <Button title="Manage Cards" onPress={() => navigation.navigate('CardManagement')} />
       <Button title="Logout" onPress={handleLogout} />
       {/* We'll add more features here soon */}
     </View>

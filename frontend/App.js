@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import HomeScreen from './screens/HomeScreen';
+import CardManagementScreen from './screens/CardManagementScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -23,6 +24,9 @@ export default function App() {
           <>
             <Stack.Screen name="Home">
               {(props) => <HomeScreen {...props} token={token} setToken={setToken} />}
+            </Stack.Screen>
+            <Stack.Screen name="CardManagement">
+              {(props) => <CardManagementScreen {...props} token={token} />}
             </Stack.Screen>
           </>
         ) : (
