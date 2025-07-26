@@ -167,7 +167,7 @@ def add_reward_rule():
     db.session.commit()
     return jsonify({"message": "Reward rule added!", "rule_id": rule.id}), 201
 
-@app.route("/reward_rules/<int:card_id>", methods=["GET"])
+@app.route("/cards/<int:card_id>/reward_rules", methods=["GET"])
 @jwt_required()
 def get_reward_rules(card_id):
     user_id = get_jwt_identity()
