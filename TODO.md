@@ -4,9 +4,9 @@ This file tracks the development progress of the Auto-Card project.
 
 ## High Priority
 
-*   [ ] **Refactor HomeScreen to be the Card Management Screen:**
-    *   [ ] Merge the functionality of `CardManagementScreen` into `HomeScreen`.
-    *   [ ] Redesign the layout to resemble Apple Wallet, with horizontally scrollable cards.
+*   [x] **Refactor HomeScreen to be the Card Management Screen:**
+    *   [x] Merge the functionality of `CardManagementScreen` into `HomeScreen`.
+    *   [x] Redesign the layout to resemble Apple Wallet, with a vertically scrolling list of cards.
     *   [ ] Tapping a card should navigate to its `RewardRuleScreen`.
 *   [x] **Card Management UI:**
     *   [x] Create a new screen to display a list of the user's credit cards.
