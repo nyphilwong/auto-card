@@ -1,26 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, Button, StyleSheet, Modal, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, Button, StyleSheet, Modal, TextInput } from 'react-native';
 
-const CardManagementScreen = ({ navigation, token }) => {
-  const [modalVisible, setModalVisible] = useState(false);
-  const [cardName, setCardName] = useState('');
-  const [lastFour, setLastFour] = useState('');
-
-  // State variables to hold the list of cards, loading status, and any errors.
-  const [cards, setCards] = useState([]);
+const RewardRuleScreen = ({ route, token }) => {
+  const { cardId } = route.params;
+  const [rules, setRules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [category, setCategory] = useState('');
+  const [rewardType, setRewardType] = useState('');
+  const [rewardValue, setRewardValue] = useState('');
 
-  // useEffect hook to fetch cards from the backend when the component mounts.
   useEffect(() => {
-    const fetchCards = async () => {
+    const fetchRewardRules = async () => {
       try {
-        // Fetching data from the /cards endpoint.
-        const response = await fetch('http://127.0.0.1:5000/cards', {
+        const response = await fetch(`http://127.0.0.1:5000/reward_rules/${cardId}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            // The JWT token is required for authentication.
             'Authorization': `Bearer ${token}`,
           },
         });
@@ -28,53 +25,55 @@ const CardManagementScreen = ({ navigation, token }) => {
         const data = await response.json();
 
         if (response.ok) {
-          // If the request was successful, update the cards state.
-          setCards(data);
+          setRules(data);
         } else {
-          // If there was an error, update the error state.
           setError(data.error || 'Something went wrong');
         }
       } catch (e) {
-        // Handle network errors.
         setError('Network request failed');
       } finally {
-        // Set loading to false after the request is complete.
         setLoading(false);
       }
     };
 
-    fetchCards();
-  }, [token]); // The effect depends on the token, so it will re-run if the token changes.
+    fetchRewardRules();
+  }, [cardId, token]);
 
-  const handleAddCard = async () => {
+  const handleAddRule = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:5000/cards', {
+      const response = await fetch('http://127.0.0.1:5000/reward_rules', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ name: cardName, last_four: lastFour }),
+        body: JSON.stringify({ 
+          card_id: cardId,
+          category: category,
+          reward_type: rewardType,
+          reward_value: parseFloat(rewardValue),
+        }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        setCards([...cards, { id: data.card_id, name: cardName, last_four: lastFour }]);
+        setRules([...rules, { id: data.rule_id, category, reward_type: rewardType, reward_value: parseFloat(rewardValue) }]);
         setModalVisible(false);
-        setCardName('');
-        setLastFour('');
+        setCategory('');
+        setRewardType('');
+        setRewardValue('');
       } else {
-        alert(data.error || 'Failed to add card');
+        alert(data.error || 'Failed to add reward rule');
       }
     } catch (e) {
       alert('Network request failed');
     }
   };
 
-  const handleDeleteCard = async (cardId) => {
+  const handleDeleteRule = async (ruleId) => {
     try {
-      const response = await fetch(`http://127.0.0.1:5000/cards/${cardId}`,
+      const response = await fetch(`http://127.0.0.1:5000/reward_rules/${ruleId}`,
         {
           method: 'DELETE',
           headers: {
@@ -83,40 +82,34 @@ const CardManagementScreen = ({ navigation, token }) => {
         });
 
       if (response.ok) {
-        setCards(cards.filter(card => card.id !== cardId));
+        setRules(rules.filter(rule => rule.id !== ruleId));
       } else {
         const data = await response.json();
-        alert(data.error || 'Failed to delete card');
+        alert(data.error || 'Failed to delete reward rule');
       }
     } catch (e) {
       alert('Network request failed');
     }
   };
 
-  // Render a loading message while the data is being fetched.
   if (loading) {
     return <View style={styles.container}><Text>Loading...</Text></View>;
   }
 
-  // Render an error message if something went wrong.
   if (error) {
     return <View style={styles.container}><Text>Error: {error}</Text></View>;
   }
 
-  // Render the list of cards using a FlatList.
   return (
     <View style={styles.container}>
       <FlatList
-        data={cards}
+        data={rules}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => navigation.navigate('RewardRule', { cardId: item.id, token: token })}>
-            <View style={styles.card}>
-              <Text style={styles.cardText}>{item.name}</Text>
-              <Text style={styles.cardText}>**** **** **** {item.last_four}</Text>
-              <Button title="Delete" onPress={() => handleDeleteCard(item.id)} />
-            </View>
-          </TouchableOpacity>
+          <View style={styles.rule}>
+            <Text style={styles.ruleText}>{item.category}: {item.reward_value}{item.reward_type === 'cashback' ? '%' : 'x'}</Text>
+            <Button title="Delete" onPress={() => handleDeleteRule(item.id)} />
+          </View>
         )}
       />
       <Modal
@@ -130,36 +123,40 @@ const CardManagementScreen = ({ navigation, token }) => {
         <View style={styles.centeredView}>
           <View style={styles.modalView}>
             <TextInput
-              placeholder="Card Name"
-              value={cardName}
-              onChangeText={setCardName}
+              placeholder="Category"
+              value={category}
+              onChangeText={setCategory}
               style={styles.input}
             />
             <TextInput
-              placeholder="Last Four Digits"
-              value={lastFour}
-              onChangeText={setLastFour}
+              placeholder="Reward Type (points/cashback)"
+              value={rewardType}
+              onChangeText={setRewardType}
+              style={styles.input}
+            />
+            <TextInput
+              placeholder="Reward Value"
+              value={rewardValue}
+              onChangeText={setRewardValue}
               style={styles.input}
               keyboardType="numeric"
-              maxLength={4}
             />
-            <Button title="Add Card" onPress={handleAddCard} />
+            <Button title="Add Rule" onPress={handleAddRule} />
             <Button title="Cancel" onPress={() => setModalVisible(false)} />
           </View>
         </View>
       </Modal>
-      <Button title="Add New Card" onPress={() => setModalVisible(true)} />
+      <Button title="Add New Rule" onPress={() => setModalVisible(true)} />
     </View>
   );
 };
 
-// Basic styling for the component.
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
   },
-  card: {
+  rule: {
     padding: 15,
     marginBottom: 10,
     backgroundColor: '#f9f9f9',
@@ -167,7 +164,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
   },
-  cardText: {
+  ruleText: {
     fontSize: 16,
   },
   centeredView: {
@@ -201,4 +198,4 @@ const styles = StyleSheet.create({
   }
 });
 
-export default CardManagementScreen;
+export default RewardRuleScreen;

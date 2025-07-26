@@ -6,6 +6,7 @@ import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import HomeScreen from './screens/HomeScreen';
 import CardManagementScreen from './screens/CardManagementScreen';
+import RewardRuleScreen from './screens/RewardRuleScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -27,6 +28,9 @@ export default function App() {
             </Stack.Screen>
             <Stack.Screen name="CardManagement">
               {(props) => <CardManagementScreen {...props} token={token} />}
+            </Stack.Screen>
+            <Stack.Screen name="RewardRule">
+              {(props) => <RewardRuleScreen {...props} token={token} />}
             </Stack.Screen>
           </>
         ) : (

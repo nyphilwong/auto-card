@@ -183,6 +183,22 @@ def get_reward_rules(card_id):
     } for r in rules]
     return jsonify(rule_list), 200
 
+@app.route("/reward_rules/<int:rule_id>", methods=["DELETE"])
+@jwt_required()
+def delete_reward_rule(rule_id):
+    user_id = get_jwt_identity()
+    rule = RewardRule.query.get(rule_id)
+    if not rule:
+        return jsonify({"error": "Reward rule not found"}), 404
+    
+    card = Card.query.filter_by(id=rule.card_id, user_id=user_id).first()
+    if not card:
+        return jsonify({"error": "Unauthorized to delete this reward rule"}), 403
+
+    db.session.delete(rule)
+    db.session.commit()
+    return jsonify({"message": "Reward rule deleted"}), 200
+
 @app.route("/recommend_card", methods=["POST"])
 @jwt_required()
 def recommend_card():
