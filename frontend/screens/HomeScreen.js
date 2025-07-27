@@ -13,6 +13,8 @@ const HomeScreen = ({ navigation, token, setToken }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (!token) return;
+
     const fetchCards = async () => {
       try {
         const response = await fetch('http://127.0.0.1:5000/cards', {
@@ -27,6 +29,8 @@ const HomeScreen = ({ navigation, token, setToken }) => {
 
         if (response.ok) {
           setCards(data);
+        } else if (response.status === 401) {
+          setToken(null); // Automatically log out if token is invalid/expired
         } else {
           setError(data.error || 'Something went wrong');
         }
