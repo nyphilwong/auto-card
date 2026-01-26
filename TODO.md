@@ -24,6 +24,7 @@ This file tracks the development progress of the Auto-Card project.
 *   [ ] **UI/UX Enhancements:**
     *   [ ] Improve the overall design and user experience of the app.
     *   [ ] Add more user-friendly components for managing cards and rules.
+    *   [ ] Center cards on the home screen and implement Apple Wallet-like card graphics.
 *   [ ] **Testing:**
     *   [ ] Write unit tests for the backend API endpoints.
     *   [ ] Implement component and integration tests for the frontend.
